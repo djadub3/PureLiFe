@@ -13,17 +13,9 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
-
-    <item
-        android:id="@+id/secure_connect_scan"
-        android:icon="@drawable/ic_action_device_access_bluetooth_searching"
-        app:showAsAction="ifRoom"
-        android:title="@string/secure_connect"/>
-
-    <item android:id="@+id/load_day_data"
-        android:title="load day data"
-        app:showAsAction="never"/>
-
-</menu>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:padding="5dp"
+          android:textSize="18sp"
+    />
