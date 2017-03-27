@@ -2,7 +2,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.andy.purelife.BatteryFragment">
+    tools:context="com.example.andy.purelifefinal.BatteryFragment">
 
     <!-- TODO: Update blank fragment layout -->
     <TextView

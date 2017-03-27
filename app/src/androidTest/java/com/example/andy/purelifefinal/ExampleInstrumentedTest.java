@@ -1,4 +1,4 @@
-package com.example.andy.purelife;
+package com.example.andy.purelifefinal;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

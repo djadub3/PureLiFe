@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.andy.purelife;
+package com.example.andy.purelifefinal;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;

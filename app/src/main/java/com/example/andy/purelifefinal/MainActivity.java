@@ -1,32 +1,75 @@
-package com.example.andy.purelife;
+package com.example.andy.purelifefinal;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.support.design.widget.NavigationView;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
+
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineDataSet;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+import static android.R.id.message;
+
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "MainActivity";
+
+    //fragments
+    HomeFragment homeFragment;
+
+    // graph variables
+    private String time;
+
+    ArrayList<Entry> inPowerVals;
+    LineDataSet inPowerSet;
+    ArrayList<Entry> outPowerVals;
+    LineDataSet outPowerSet;
+
+
+    ArrayList<Entry> generatedEnergyVals;
+    LineDataSet generatedEnegySet;
+    ArrayList<Entry> consumedEnergyVals;
+    LineDataSet consumedEnergySet;
+
+    ArrayList<Entry> capacityVals;
+    LineDataSet capacitySet;
+
+    ArrayList<String> xLabels;
+    int count;
+
 
     // Intent request codes
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
@@ -54,6 +97,12 @@ public class MainActivity extends AppCompatActivity
     private BluetoothService mChatService = null;
 
 
+    //PVO service variables
+
+    PVOutputsService mPvOutputsService;
+    boolean mBound = false;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,6 +126,21 @@ public class MainActivity extends AppCompatActivity
         if (mBluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
         }
+
+        //set up graphing lists
+        inPowerVals = new ArrayList<>();
+        outPowerVals = new ArrayList<>();
+        xLabels = new ArrayList<>();
+
+        // launch home fragment
+        homeFragment = new HomeFragment();
+        FragmentManager manager = getSupportFragmentManager();
+        manager.beginTransaction().replace(R.id.content_main, homeFragment).commit();
+    }
+
+    @Override
+    public View onCreateView(View parent, String name, Context context, AttributeSet attrs) {
+        return super.onCreateView(parent, name, context, attrs);
     }
 
     @Override
@@ -91,14 +155,30 @@ public class MainActivity extends AppCompatActivity
         } else if (mChatService == null) {
             setupBt();
         }
+
+        // set up PVOutputs Service
+
+        Intent intent = new Intent(this, PVOutputsService.class);
+        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
     }
 
+    public final Handler mPVOHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            Log.v("PVO Handler", String.valueOf(msg.obj));
+
+            Toast.makeText(activity,String.valueOf(msg.obj)+" data points uploaded to PVO",Toast.LENGTH_LONG).show();
+        }
+    };
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         if (mChatService != null) {
             mChatService.stop();
+        }
+        if (mConnection != null) {
+            unbindService(mConnection);
         }
     }
 
@@ -134,9 +214,9 @@ public class MainActivity extends AppCompatActivity
      * @param resId a string resource ID
      */
     private void setStatus(int resId) {
-        final android.support.v7.app.ActionBar actionBar = this.getSupportActionBar();
+        final ActionBar actionBar = this.getSupportActionBar();
         if (null == actionBar) {
-            Log.v(TAG,"actionbar null");
+            Log.v(TAG, "actionbar null");
             return;
         }
         actionBar.setSubtitle(resId);
@@ -149,14 +229,15 @@ public class MainActivity extends AppCompatActivity
      */
     private void setStatus(CharSequence subTitle) {
 
-        final android.support.v7.app.ActionBar actionBar = this.getSupportActionBar();
+        final ActionBar actionBar = this.getSupportActionBar();
         if (null == actionBar) {
-            Log.v(TAG,"actionbar null");
+            Log.v(TAG, "actionbar null");
 
             return;
         }
         actionBar.setSubtitle(subTitle);
     }
+
     AppCompatActivity activity = this;
     /**
      * The Handler that gets information back from the BluetoothChatService
@@ -170,6 +251,8 @@ public class MainActivity extends AppCompatActivity
                     switch (msg.arg1) {
                         case BluetoothService.STATE_CONNECTED:
                             setStatus(getString(R.string.title_connected_to, mConnectedDeviceName));
+                            getDayData();
+                            getPVOData();
                             break;
                         case BluetoothService.STATE_CONNECTING:
                             setStatus(R.string.title_connecting);
@@ -186,16 +269,8 @@ public class MainActivity extends AppCompatActivity
                     JSONObject inputJson = null;
                     try {
                         inputJson = new JSONObject((String) msg.obj);           //extract JSON string from msg
-                        Log.v(TAG,inputJson.toString());
-                        //LivePowerFragment LiveViewFrag = (LivePowerFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_live_power_graph);
-                        /*
-                        livePowerFragment.updateGraph(inputJson);
-                        liveBatteryFragment.updateGraph(inputJson);
-                        textItemsFragment.updateText(inputJson);
-                        */
-                    } catch (JSONException e) {                                 // catch errors with JSON extraction
-                        e.printStackTrace();
-                    }
+                        getLiveData(inputJson);
+                    } catch (Exception e) {}
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
                     // save the connected device's name
@@ -215,10 +290,17 @@ public class MainActivity extends AppCompatActivity
                     JSONObject inputJson2 = null;
                     try {
                         inputJson2 = new JSONObject((String) msg.obj);           //extract JSON string from msg
-                        //Log.v(TAG,inputJson2.toString());
-                        //LivePowerFragment LiveViewFrag = (LivePowerFragment) getSupportFragmentManager().findFragmentById(R.id.fragment_live_power_graph);
-                        //dayPowerFragment.updateGraph(inputJson2);
-                        //dayBatteryFragment.updateGraph(inputJson2);
+                        logData(inputJson2);
+
+                    } catch (JSONException e) {                                 // catch errors with JSON extraction
+                        e.printStackTrace();
+                    }
+                    break;
+                case Constants.READ_PVO:
+                    JSONObject inputJson3 = null;
+                    try {
+                        inputJson3 = new JSONObject((String) msg.obj);           //extract JSON string from msg
+                        mPvOutputsService.logPVOData(inputJson3);
 
                     } catch (JSONException e) {                                 // catch errors with JSON extraction
                         e.printStackTrace();
@@ -251,7 +333,6 @@ public class MainActivity extends AppCompatActivity
                     Log.d(TAG, "BT not enabled");
                     Toast.makeText(activity, R.string.bt_not_enabled_leaving,
                             Toast.LENGTH_SHORT).show();
-
                 }
         }
     }
@@ -298,13 +379,38 @@ public class MainActivity extends AppCompatActivity
                 startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_SECURE);
                 return true;
             }
-            case R.id.load_day_data:{
-                //dayBatteryFragment.removeGraphData();
-                //dayPowerFragment.removeGraphData();
-                String outString="1";
-                byte[] outArray=outString.getBytes(StandardCharsets.UTF_8);
-                mChatService.write(outArray);
+            case R.id.load_day_data: {
+                getDayData();
+                return true;
+            }
 
+            case R.id.load_PVO_data: {
+                getPVOData();
+                return true;
+            }
+
+            case R.id.reset_SD: {
+                new AlertDialog.Builder(this)
+                        .setTitle("Reset SD Card Data")
+                        .setMessage("Do you really want to reset SD card")
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+
+                            public void onClick(DialogInterface dialog, int whichButton) {
+                                String outString = "4";
+                                byte[] outArray = outString.getBytes(StandardCharsets.UTF_8);
+                                mChatService.write(outArray);
+
+                                inPowerSet = null;
+                                outPowerSet = null;
+                                consumedEnergySet = null;
+                                generatedEnegySet = null;
+                                capacitySet = null;
+
+                                Toast.makeText(getApplicationContext(),"SD card deleted",Toast.LENGTH_SHORT);
+                            }})
+                        .setNegativeButton(android.R.string.no, null).show();
+                return true;
             }
         }
         return false;
@@ -317,50 +423,156 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_home) {
-            HomeFragment homeFragment= new HomeFragment();
             FragmentManager manager = getSupportFragmentManager();
             manager.beginTransaction().replace(R.id.content_main, homeFragment).commit();
-        }
-
-        else if (id == R.id.nav_battery) {
-            BatteryFragment batteryFragment= new BatteryFragment();
+        } else if (id == R.id.nav_battery) {
+            BatteryFragment batteryFragment = new BatteryFragment();
             FragmentManager manager = getSupportFragmentManager();
             manager.beginTransaction().replace(R.id.content_main, batteryFragment).commit();
-        }
-
-        else if (id == R.id.nav_settings) {
-            SettingsFragment settingsFragment= new SettingsFragment();
+        } else if (id == R.id.nav_settings) {
+            SettingsFragment settingsFragment = new SettingsFragment();
             FragmentManager manager = getSupportFragmentManager();
             manager.beginTransaction().replace(R.id.content_main, settingsFragment).commit();
-        }
-        else if (id == R.id.nav_info) {
-            InfoFragment infoFragment= new InfoFragment();
+        } else if (id == R.id.nav_info) {
+            InfoFragment infoFragment = new InfoFragment();
             FragmentManager manager = getSupportFragmentManager();
             manager.beginTransaction().replace(R.id.content_main, infoFragment).commit();
+        } else if (id == R.id.nav_power) {
+            PowerGraphFragment powerGraphFragment = new PowerGraphFragment();
+            try {
+                powerGraphFragment.populate(inPowerSet, outPowerSet, xLabels);
+                FragmentManager manager = getSupportFragmentManager();
+                manager.beginTransaction().replace(R.id.content_main, powerGraphFragment).commit();
+            } catch (Exception e) {}
+
+        } else if (id == R.id.nav_energy) {
+            EnergyGraphFragment energyGraphFragment = new EnergyGraphFragment();
+            Log.v("energy graph", "selected");
+            try {
+                energyGraphFragment.populate(generatedEnegySet, consumedEnergySet, xLabels);
+                FragmentManager manager = getSupportFragmentManager();
+                manager.beginTransaction().replace(R.id.content_main, energyGraphFragment).commit();
+            } catch (Exception e) {
+            }
+        } else if (id == R.id.nav_capacity) {
+            CapacityGraphFragment capacityGraphFragment = new CapacityGraphFragment();
+            try {
+                capacityGraphFragment.populate(capacitySet, xLabels);
+                FragmentManager manager = getSupportFragmentManager();
+                manager.beginTransaction().replace(R.id.content_main, capacityGraphFragment).commit();
+            } catch (Exception e) {
+            }
         }
-
-        else if (id == R.id.nav_power) {
-            PowerGraphFragment powerGraphFragment= new PowerGraphFragment();
-            FragmentManager manager = getSupportFragmentManager();
-            manager.beginTransaction().replace(R.id.content_main, powerGraphFragment).commit();
-
-        }
-        else if (id == R.id.nav_energy) {
-            EnergyGraphFragment energyGraphFragment= new EnergyGraphFragment();
-            FragmentManager manager = getSupportFragmentManager();
-            manager.beginTransaction().replace(R.id.content_main, energyGraphFragment).commit();
-        }
-
-        else if (id == R.id.nav_capacity) {
-            CapacityGraphFragment capacityGraphFragment= new CapacityGraphFragment();
-            FragmentManager manager = getSupportFragmentManager();
-            manager.beginTransaction().replace(R.id.content_main, capacityGraphFragment).commit();
-        }
-
-
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
+
+    void logData(JSONObject inputJson) {
+
+        try {
+            if (inputJson.getInt("end") == 0) {
+                float inPower = (float) inputJson.getDouble("inPower");
+                inPowerVals.add(new Entry(inPower, count));
+
+                float outPower = (float) inputJson.getDouble("outPower");
+                outPowerVals.add(new Entry(outPower, count));
+
+                float energyGenerated = (float) inputJson.getDouble("solarEnergy");
+                generatedEnergyVals.add(new Entry(energyGenerated, count));
+
+                float energyConsumed = (float) inputJson.getDouble("consumedEnergy");
+                consumedEnergyVals.add(new Entry(energyConsumed, count));
+
+                float capacity = (float) inputJson.getDouble("capacity");
+                capacityVals.add(new Entry(capacity, count));
+
+                count++;
+                time = inputJson.getString("time");
+                xLabels.add(formatTime(time));
+            } else {
+                inPowerSet = new LineDataSet(inPowerVals, "Power In");
+                outPowerSet = new LineDataSet(outPowerVals, "Power Out");
+                consumedEnergySet = new LineDataSet(consumedEnergyVals, "Consumed Energy");
+                generatedEnegySet = new LineDataSet(generatedEnergyVals, "Generated Energy");
+                capacitySet = new LineDataSet(capacityVals, "capacity");
+                Toast.makeText(activity,String.valueOf(inPowerVals.size())+" Data points downloaded",Toast.LENGTH_LONG).show();
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String formatTime(String time) {
+        try {
+            Date date = new Date (Long.parseLong(time)*1000);
+            SimpleDateFormat sdf = new SimpleDateFormat("h:mm a", Locale.ENGLISH);
+            sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+            String formattedDate = sdf.format(date);
+            return formattedDate;
+        } catch (Exception e) {
+        }
+        return "";
+    }
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            PVOutputsService.PVOutputsBinder binder = (PVOutputsService.PVOutputsBinder) service;
+            mPvOutputsService = binder.getService();
+            mBound = true;
+            mPvOutputsService.setBtChatService(mChatService);
+            mPvOutputsService.setHandler(mPVOHandler);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
+
+    private void getDayData(){
+        inPowerVals = new ArrayList<>();
+        outPowerVals = new ArrayList<>();
+        generatedEnergyVals = new ArrayList<>();
+        consumedEnergyVals = new ArrayList<>();
+        capacityVals = new ArrayList<>();
+        xLabels = new ArrayList<>();
+        count = 0;
+
+        String outString = "1";
+        byte[] outArray = outString.getBytes(StandardCharsets.UTF_8);
+        mChatService.write(outArray);
+        Log.v("out string", outArray.toString());
+    }
+
+    private void getPVOData(){
+        String outString2 = "2";
+        byte[] outArray2 = outString2.getBytes(StandardCharsets.UTF_8);
+        mChatService.write(outArray2);
+    }
+
+    private void getLiveData(JSONObject inputJson){
+
+        try{
+            String batteryVoltage = inputJson.getString("batVoltage");
+            String inPower = inputJson.getString("inPower");
+            String outPower = inputJson.getString("outPower");
+            String batPower = inputJson.getString("batPower");
+            String capacity = inputJson.getString("capacity");
+            String solarEnergy = inputJson.getString("solarEnergy");
+            String consumedEnergy = inputJson.getString("consumedEnergy");
+            String ampHoursStored = inputJson.getString("ampHoursStored");
+            homeFragment.update(batteryVoltage, inPower, outPower, batPower, capacity, solarEnergy, consumedEnergy, ampHoursStored);
+        } catch (Exception e) {}
+
+    }
+
+
+
+
 }

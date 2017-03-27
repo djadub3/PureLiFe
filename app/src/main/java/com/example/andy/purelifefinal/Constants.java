@@ -1,4 +1,4 @@
-package com.example.andy.purelife;
+package com.example.andy.purelifefinal;
 
 /**
  * Defines several constants used between {@link BluetoothService} and the UI.
@@ -12,6 +12,7 @@ public interface Constants {
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
     public static final int READ_DAY = 6;
+    public static final int READ_PVO = 7;
 
     // Key names received from the BluetoothChatService Handler
     public static final String DEVICE_NAME = "device_name";

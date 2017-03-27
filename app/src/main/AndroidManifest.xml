@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.andy.purelife">
+    package="com.example.andy.purelifefinal">
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="PURE LiFe"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
-            android:label="@string/app_name"
+            android:name="com.example.andy.purelifefinal.MainActivity"
+            android:label= "PURE LiFe"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -23,19 +24,23 @@
         </activity>
 
         <service
-            android:name="BluetoothService"
+            android:name="com.example.andy.purelifefinal.BluetoothService"
             android:enabled="true"
-            android:exported="true" >
-        </service>
+            android:exported="true"></service>
 
         <activity
-            android:name=".DeviceListActivity"
+            android:name="com.example.andy.purelifefinal.DeviceListActivity"
             android:label="@string/select_device"
-            android:theme="@android:style/Theme.Holo.Dialog" >
-        </activity>
+            android:theme="@android:style/Theme.Holo.Dialog"></activity>
 
-
-
+        <service
+            android:name="com.example.andy.purelifefinal.PVOutputsService"
+            android:enabled="true"
+            android:exported="true"></service><!-- ATTENTION: This was auto-generated to add Google Play services to your project for
+     App Indexing.  See https://g.co/AppIndexing/AndroidStudio for more information. -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
     </application>
 
 </manifest>

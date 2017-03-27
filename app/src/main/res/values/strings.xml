@@ -33,4 +33,20 @@
     <string name="drawer_open">Open navigation drawer</string>
     <string name="drawer_close">Close navigation drawer</string>
 
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="battery"><a href="https://www.bioennopower.com/collections/12v-series-lifepo4-batteries/products/12v-50ah-lfp-battery-black-w-pvc-pack">LiFePo4 Battery</a>
+    </string>
+
+    <string name="charge_controller"><a href="https://www.bioennopower.com/collections/solar-charger-controllers/products/12v-24v-30a-mppt-solar-charge-controller-for-lifepo4-batteries-sc-122430wm">LiFePo4 Solar Charge Controller</a>
+    </string>
+
+    <string name="solar_panel"><a href="https://www.bioennopower.com/collections/solar-panels/products/80-watt-foldable-solar-panel-for-charging-power-packs-bsp-80">80W Foldable Solar Panel</a>
+    </string>
+
+    <string name="more_info"><a href="http://purelifeproject.weebly.com/">More info on the Project</a>
+    </string>
+
+
 </resources>

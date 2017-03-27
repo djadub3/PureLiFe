@@ -1,4 +1,4 @@
-package com.example.andy.purelife;
+package com.example.andy.purelifefinal;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -488,6 +488,10 @@ public class BluetoothService {
                         if(tag==2) {
                             // Send the obtained bytes to the UI Activity
                             mHandler.obtainMessage(Constants.READ_DAY, -1, -1, JsonString)
+                                    .sendToTarget();
+                        }
+                        if(tag==3){
+                            mHandler.obtainMessage(Constants.READ_PVO,-1,-1,JsonString)
                                     .sendToTarget();
                         }
                         JsonString="";

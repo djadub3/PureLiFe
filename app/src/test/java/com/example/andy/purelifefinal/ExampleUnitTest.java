@@ -1,4 +1,4 @@
-package com.example.andy.purelife;
+package com.example.andy.purelifefinal;
 
 import org.junit.Test;
 
