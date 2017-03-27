@@ -313,7 +313,6 @@
                         android:layout_weight=".2" />
 
                     <TextView
-                        android:text="200Wh"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:id="@+id/energy_generated_text"
@@ -352,7 +351,6 @@
                         android:layout_weight=".2" />
 
                     <TextView
-                        android:text="150Wh"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:id="@+id/consumed_energy_text"
@@ -391,7 +389,6 @@
                         android:layout_weight=".2" />
 
                     <TextView
-                        android:text="20Ah"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
                         android:id="@+id/amp_hours_stored_text"

@@ -11,9 +11,9 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.os.Message;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -41,8 +41,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
-
-import static android.R.id.message;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "MainActivity";
@@ -359,7 +357,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
         } else {
-            super.onBackPressed();
+            FragmentManager manager = getSupportFragmentManager();
+            Fragment currentFragment = manager.findFragmentById(R.id.content_main);
+            if(currentFragment instanceof HomeFragment) super.onBackPressed();
+            else manager.beginTransaction().replace(R.id.content_main, homeFragment).commit();
         }
     }
 
@@ -571,8 +572,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } catch (Exception e) {}
 
     }
-
-
 
 
 }
