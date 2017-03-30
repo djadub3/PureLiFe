@@ -1,22 +1,27 @@
 package com.example.andy.purelifefinal;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.text.*;
-import java.lang.Thread;
-import java.lang.InterruptedException;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Date;
 
 public class DataUpload {
 
     private static String apiKey;
     private static String systemID;
-    private long rateLimitResetTime;
 
     public DataUpload(String apiKey, String systemID) {
         this.apiKey = apiKey;
         this.systemID = systemID;
-        this.rateLimitResetTime = 0;
     }
 
     // call upload method until no more data or rate limit is reached
@@ -25,133 +30,83 @@ public class DataUpload {
                                      ArrayList<Float> powerCons, ArrayList<Float> volts) {
         ArrayDeque<String> dataQueue = dataToBatchStatusString(unixTimes, energyGens,
                 powerGens, energyCons, powerCons, volts);
-        ArrayList<String> responseMessages = new ArrayList<String>();
-        long[] rateLimits;
         String[] responseSplit;
-        String data, currentTime;
+        String data, responseMessage;
+        data = responseMessage = "";
         int startSize = dataQueue.size();
         boolean wait = startSize > 1;
         boolean success = true;
-
-        do {
-            // Wait 10 seconds between upload requests per PVOutput.org API
-            if (wait && dataQueue.size() < startSize) pvWait();
-            data = dataQueue.remove();
-            ArrayList<String>[] headers = upload(data);
-            responseMessages.add(headers[2].get(0));
-            responseSplit = headers[2].get(0).split("\t");
-            success = responseSplit[1].equals("200") && success;
-            rateLimits = getRateLimits(headers);
-            this.rateLimitResetTime = rateLimits[2]*1000;
-			/*if (success) {
-				System.out.println(responseSplit[0] + " " + responseSplit[1] + " " +
-				responseSplit[2]);
-			} else {
-				System.out.println(responseSplit[0] + " " + responseSplit[3]);
-			}*/
-        } while (!dataQueue.isEmpty() && !responseSplit[1].equals("403"));
+        try {
+            do {
+                // Wait 10 seconds between upload requests per PVOutput.org API
+                if (wait && dataQueue.size() < startSize) pvWait();
+                data = dataQueue.remove();
+                responseMessage = upload(data);
+                responseSplit = responseMessage.split("\t");
+                success = responseSplit[1].equals("200") && success;
+				/*if (success) {
+					System.out.println(responseSplit[0] + " " + responseSplit[1] + " " +
+					responseSplit[2]);
+				} else {
+					System.out.println(responseSplit[0] + " " + responseSplit[3]);
+				}*/
+            } while (!dataQueue.isEmpty() && !responseSplit[1].equals("403"));
+        } catch (Exception e) {
+            return false;
+        }
         return success;
     }
 
     // perform one batch status upload and return headers response from PVOutput.org
-    public ArrayList<String>[] upload(String data) {
+    private String upload(String data) throws Exception {
         // Open batch status upload connection to PVOutput.org
-        ArrayList<String>[] headers = null;
-        try {
-            URL url = new URL("http://pvoutput.org/service/r2/addbatchstatus.jsp");
-            HttpURLConnection urlConnection = (HttpURLConnection)url.openConnection();
-            // Set HTTP method to POST, input API key and System ID and request rate
-            // limit from PVOutput.org
-            urlConnection.setRequestMethod("POST");
-            urlConnection.setRequestProperty("X-Rate-Limit","1");
-            urlConnection.setRequestProperty("X-Pvoutput-Apikey",this.apiKey);
-            urlConnection.setRequestProperty("X-Pvoutput-SystemId",this.systemID);
-
-            try {
-                // Set settings for upload
-                urlConnection.setDoOutput(true);
-                urlConnection.setChunkedStreamingMode(0);
-                // Upload data
-                Writer out = new BufferedWriter(new OutputStreamWriter(
-                        urlConnection.getOutputStream()));
-                out.write(data);
-                out.close();
-                // get headers for rate limit check and rate limit reset time
-                headers = getHeaders(urlConnection);
-                // check response message for successful upload or error.
-                String responseCode = Integer.toString(urlConnection.getResponseCode());
-                String responseMessage = urlConnection.getResponseMessage();
-                String messageBody = "";
-                if (responseCode.equals("200")) {
-                    messageBody = readStream(urlConnection.getInputStream());
-                } else {
-                    messageBody = readStream(urlConnection.getErrorStream());
-                }
-                responseMessage = getDateTime(new Date()) + "\t" + responseCode + "\t" +
-                        responseMessage + "\t" + messageBody;
-                headers[2] = new ArrayList<String>();
-                headers[2].add(responseMessage);
-            } finally {
-                urlConnection.disconnect();
-            }
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return headers;
-    }
-
-    // get headers from PVOutput.org after uploading data
-    public ArrayList<String>[] getHeaders(HttpURLConnection urlConnection) {
-        int i = 1;
-        ArrayList<String> headerFields = new ArrayList<String>();
-        ArrayList<String> headerKeys = new ArrayList<String>();
-        String headerKey = "";
-        while ((headerKey = urlConnection.getHeaderFieldKey(i)) != null) {
-            headerKeys.add(headerKey);
-            headerFields.add(urlConnection.getHeaderField(i));
-            i++;
-        }
-        ArrayList<String>[] headers = new ArrayList[3];
-        headers[0] = headerKeys;
-        headers[1] = headerFields;
-        return headers;
-    }
-    // get upload limit from headers returned from PVOutput.org
-    public long[] getRateLimits(ArrayList<String>[] headers) {
-        long[] rateLimits = new long[3];
-        int check = 0;
-        String headerKey, headerField;
-        for (int i = 0; i < headers[0].size() && check < 3; i++) {
-            headerKey = headers[0].get(i);
-            headerField = headers[1].get(i);
-            if (headerKey == "X-Rate-Limit-Remaining") {
-                rateLimits[0] = Long.valueOf(headerField);
-                check++;
-            }
-            if (headerKey == "X-Rate-Limit-Limit") {
-                rateLimits[1] = Long.valueOf(headerField);
-                check++;
-            }
-            if (headerKey == "X-Rate-Limit-Reset") {
-                rateLimits[2] = Long.valueOf(headerField);
-                check++;
-            }
-        }
-        return rateLimits;
+        URL url = new URL("http://pvoutput.org/service/r2/addbatchstatus.jsp");
+        HttpURLConnection urlConnection = (HttpURLConnection)url.openConnection();
+        // Set HTTP method to POST, input API key and System ID and request rate
+        // limit from PVOutput.org
+        urlConnection.setRequestMethod("POST");
+        urlConnection.setRequestProperty("X-Pvoutput-Apikey",this.apiKey);
+        urlConnection.setRequestProperty("X-Pvoutput-SystemId",this.systemID);
+        // Set settings for upload
+        urlConnection.setDoOutput(true);
+        urlConnection.setChunkedStreamingMode(0);
+        // Upload data
+        Writer out = new BufferedWriter(new OutputStreamWriter(
+                urlConnection.getOutputStream()));
+        out.write(data);
+        out.close();
+        // check response message for successful upload or error.
+        String responseCode = Integer.toString(urlConnection.getResponseCode());
+        String responseMessage = urlConnection.getResponseMessage();
+        String messageBody = "";
+		/*if (responseCode.equals("200")) {
+			messageBody = readStream(urlConnection.getInputStream());
+		} else {
+			messageBody = readStream(urlConnection.getErrorStream());
+		}*/
+        StringBuilder sb = new StringBuilder();
+        sb.append(getDateTime(new Date()));
+        sb.append("\t");
+        sb.append(responseCode);
+        sb.append("\t");
+		/*sb.append(responseMessage);
+		sb.append("\t");
+		sb.append(messageBody);*/
+        urlConnection.disconnect();
+        return sb.toString();
     }
 
     // take data ArrayLists of values from Arduino and convert to String ArrayDeque
-    // energy used, power used, voltage
     public ArrayDeque<String> dataToBatchStatusString(ArrayList<Integer> unixTimes,
                                                       ArrayList<Float> energyGens, ArrayList<Float> powerGens, ArrayList<Float> energyCons,
                                                       ArrayList<Float> powerCons, ArrayList<Float> volts)
     {
         ArrayDeque<String> dataQueue = new ArrayDeque<String>();
         int batchSize = 1;
-        String batchStatus = "";
-        String dateTime, eGen, pGen, eCon, pCon, volt, status;
+        String dateTime, eGen, pGen, eCon, pCon, volt;
+        dateTime = eGen = pGen = eCon = pCon = volt = "";
+        StringBuilder status = new StringBuilder();
+        StringBuilder batchStatus = new StringBuilder();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd,HH:mm");
         for (int i = 0; i < unixTimes.size(); i++) {
             dateTime = sdf.format(new Date((long)unixTimes.get(i)*1000));
@@ -160,23 +115,35 @@ public class DataUpload {
             eCon = String.valueOf(Math.round(energyCons.get(i)));
             pCon = String.valueOf(Math.round(powerCons.get(i)));
             volt = String.valueOf(volts.get(i));
-            status = dateTime + "," + eGen + "," + pGen + "," + eCon + "," + pCon
-                    + ",-1," + volt;
+            status.setLength(0);
+            status.append(dateTime);
+            status.append(",");
+            status.append(eGen);
+            status.append(",");
+            status.append(pGen);
+            status.append(",");
+            status.append(eCon);
+            status.append(",");
+            status.append(pCon);
+            status.append(",,");
+            status.append(volt);
             if (batchSize == 1) {
-                batchStatus = "data=" + status;
+                batchStatus.setLength(0);
+                batchStatus.append("data=");
+                batchStatus.append(status.toString());
                 if (unixTimes.size() == 1) {
-                    dataQueue.add(batchStatus);
+                    dataQueue.add(batchStatus.toString());
                     return dataQueue;
-                } else {
-                    batchStatus = batchStatus + ";";
                 }
+                batchStatus.append(";");
                 batchSize++;
             } else if (batchSize < 100 && i < unixTimes.size()-1) {
-                batchStatus = batchStatus + status + ";";
+                batchStatus.append(status);
+                batchStatus.append(";");
                 batchSize++;
             } else {
-                batchStatus = batchStatus + status;
-                dataQueue.add(batchStatus);
+                batchStatus.append(status);
+                dataQueue.add(batchStatus.toString());
                 batchSize = 1;
             }
         }
@@ -187,37 +154,25 @@ public class DataUpload {
         return DateFormat.getDateTimeInstance().format(date);
     }
 
-    public String readStream(InputStream in) {
+    private String readStream(InputStream in) throws Exception {
         if (in == null) return "";
         BufferedReader br = null;
         StringBuilder sb = new StringBuilder();
         String line;
-        try {
-            br = new BufferedReader(new InputStreamReader(in));
-            while ((line = br.readLine()) != null) {
-                sb.append(line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
+        br = new BufferedReader(new InputStreamReader(in));
+        while ((line = br.readLine()) != null) {
+            sb.append(line);
+        }
+        if (br != null) {
+            br.close();
         }
         return sb.toString();
     }
 
-    public void pvWait() {
-        try {
-            Thread.sleep(10000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    private void pvWait() throws Exception {
+        Thread.sleep(10000);
     }
 }
+
 
 

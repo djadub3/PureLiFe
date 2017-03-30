@@ -95,6 +95,7 @@ public class HomeFragment extends Fragment {
         entries.add(new BarEntry(0f,2));
 
         BarDataSet dataSet= new BarDataSet(entries,"Power");
+        dataSet.setValueTextSize(12);
         dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
 
         xlabels =new ArrayList<>();
@@ -105,6 +106,8 @@ public class HomeFragment extends Fragment {
         BarData data = new BarData(xlabels,dataSet);
 
         powerChart.setData(data);
+
+
 
         powerChart.setDrawBorders(false);
         powerChart.animateY(2000);
@@ -138,7 +141,7 @@ public class HomeFragment extends Fragment {
         dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
 
         BarData data = new BarData(xlabels,dataSet);
-
+        dataSet.setValueTextSize(12);
         powerChart.setData(data);
 
         powerChart.notifyDataSetChanged();
@@ -148,10 +151,5 @@ public class HomeFragment extends Fragment {
         batteryGauge.setValue(capacityInt);
 
     }
-
-
-
-
-
 
 }
