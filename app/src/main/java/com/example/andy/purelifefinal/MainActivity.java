@@ -568,7 +568,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             String solarEnergy = inputJson.getString("solarEnergy");
             String consumedEnergy = inputJson.getString("consumedEnergy");
             String ampHoursStored = inputJson.getString("ampHoursStored");
-            homeFragment.update(batteryVoltage, inPower, outPower, batPower, capacity, solarEnergy, consumedEnergy, ampHoursStored);
+            String batHealth = inputJson.getString("batHealth");
+            homeFragment.update(batteryVoltage, inPower, outPower, batPower, capacity, solarEnergy, consumedEnergy, ampHoursStored,batHealth);
         } catch (Exception e) {}
 
     }

@@ -2,11 +2,12 @@ package com.example.andy.purelifefinal;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.util.Log;
-import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -27,7 +28,9 @@ public class PVOutputsService extends Service {
     protected Boolean status;
     private BluetoothService mChatService;
 
-    DataUpload dataUpload = new DataUpload("658de75c3e5dcc0110e0c988c377d10cb48b7d79","50634");
+    private DataUpload dataUpload;
+
+    private int utcOffset;
 
 
     // Binder given to clients
@@ -78,7 +81,7 @@ public class PVOutputsService extends Service {
                 Log.v("logPVOdata",String.valueOf(volts));
                 */
 
-                unixTimes.add((unixTime+25200));
+                unixTimes.add(unixTime);
                 energyGenValues.add(energyGen);
                 powerGenValues.add(powerGen);
                 energyConsValues.add(energyCons);
@@ -86,6 +89,13 @@ public class PVOutputsService extends Service {
                 volatageValues.add(volts);
 
             } else {
+                SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
+                String savedSytemIdDefault = getResources().getString(R.string.saved_system_id_default);
+                String savedSytemId = sharedPref.getString(getString(R.string.saved_system_id),savedSytemIdDefault);
+                String savedAPIKeyDefault = getResources().getString(R.string.saved_api_key_default);
+                String savedAPIKey = sharedPref.getString(getString(R.string.saved_api_key),savedAPIKeyDefault);
+
+                dataUpload = new DataUpload(savedAPIKey,savedSytemId);
 
                 PVOThread mPVOThread = new PVOThread(unixTimes, energyGenValues, powerGenValues, energyConsValues, powerConsValues, volatageValues);
                 mPVOThread.start();
@@ -107,6 +117,7 @@ public class PVOutputsService extends Service {
         protected ArrayList<Float> mEnergyConsValues = new ArrayList<Float>();
         protected ArrayList<Float> mPowerConsValues = new ArrayList<Float>();
         protected ArrayList<Float> mVolatageValues = new ArrayList<Float>();
+
 
 
         public PVOThread(ArrayList<Integer> unixTimes,ArrayList<Float> energyGenValues,ArrayList<Float> powerGenValues,ArrayList<Float> energyConsValues,ArrayList<Float> powerConsValues,ArrayList<Float> volatageValues){
@@ -135,7 +146,6 @@ public class PVOutputsService extends Service {
             else{
 
             }
-
 
         }
     }

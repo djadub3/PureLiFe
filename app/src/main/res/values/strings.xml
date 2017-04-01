@@ -48,5 +48,16 @@
     <string name="more_info"><a href="http://purelifeproject.weebly.com/">More info on the Project</a>
     </string>
 
+    <string name="saved_system_id_default">50634</string>
+
+    <string name="saved_system_id">saved username</string>
+
+    <string name="saved_api_key_default">658de75c3e5dcc0110e0c988c377d10cb48b7d79</string>
+
+    <string name="saved_api_key">saved api key</string>
+
+    <string name="saved_utc_offset_default">7</string>
+
+    <string name="saved_utc_offset">saved utc offset</string>
 
 </resources>

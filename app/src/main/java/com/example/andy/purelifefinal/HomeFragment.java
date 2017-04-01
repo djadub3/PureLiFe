@@ -33,9 +33,11 @@ public class HomeFragment extends Fragment {
     TextView energyGeneratedText;
     TextView consumedEnergyText;
     TextView ampHoursStoredText;
+    TextView batHealthText;
 
     BarChart powerChart;
     ArrayList<String> xlabels;
+    YAxis leftAxis;
 
 
     private BatteryIndicatorGauge batteryGauge;
@@ -68,6 +70,8 @@ public class HomeFragment extends Fragment {
         energyGeneratedText = (TextView) view.findViewById(R.id.energy_generated_text);
         consumedEnergyText = (TextView) view.findViewById(R.id.consumed_energy_text);
         ampHoursStoredText = (TextView) view.findViewById(R.id.amp_hours_stored_text);
+        batHealthText =(TextView) view.findViewById(R.id.bat_health);
+
 
         powerChart = (BarChart) view.findViewById(R.id.chart);
 
@@ -82,9 +86,11 @@ public class HomeFragment extends Fragment {
         YAxis rightAxis = powerChart.getAxisRight();
         rightAxis.setEnabled(false);
 
-        YAxis leftAxis = powerChart.getAxisLeft();
-        leftAxis.setAxisMaxValue(200);
-        leftAxis.setAxisMinValue(-200);
+        leftAxis = powerChart.getAxisLeft();
+        leftAxis.setAxisMaxValue(100);
+        leftAxis.setAxisMinValue(-100);
+        leftAxis.setLabelCount(9, true);
+        leftAxis.setDrawZeroLine(true);
 
         Legend legend = powerChart.getLegend();
         legend.setEnabled(false);
@@ -108,7 +114,6 @@ public class HomeFragment extends Fragment {
         powerChart.setData(data);
 
 
-
         powerChart.setDrawBorders(false);
         powerChart.animateY(2000);
         powerChart.setClickable(false);
@@ -117,13 +122,14 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
     }
 
-    public void update(String batteryVoltage,String inPower, String outPower, String batPower, String capacity, String solarEnergy,String consumedEnergy, String ampHoursStored){
+    public void update(String batteryVoltage,String inPower, String outPower, String batPower, String capacity, String solarEnergy,String consumedEnergy, String ampHoursStored, String batHealth){
 
         batteryVoltageText.setText(batteryVoltage+"V");
         capacityText.setText(capacity+"%");
         energyGeneratedText.setText(solarEnergy+"WH");
         consumedEnergyText.setText(consumedEnergy+"WH");
         ampHoursStoredText.setText(ampHoursStored+"AH");
+        batHealthText.setText(batHealth);
 
 
         if(Float.valueOf(batPower)>0){
@@ -136,6 +142,26 @@ public class HomeFragment extends Fragment {
         entries.add(new BarEntry(Float.valueOf(inPower),0));
         entries.add(new BarEntry(Float.valueOf(outPower),1));
         entries.add(new BarEntry(Float.valueOf(batPower),2));
+
+        leftAxis.setAxisMaxValue(100);
+        leftAxis.setAxisMinValue(-100);
+
+        if(Float.valueOf(outPower)>=100 || Float.valueOf(batPower)<=-100)
+        {
+            leftAxis.setAxisMaxValue(200);
+            leftAxis.setAxisMinValue(-200);
+        }
+        if(Float.valueOf(outPower)>=200 || Float.valueOf(batPower)<=-200)
+        {
+            leftAxis.setAxisMaxValue(300);
+            leftAxis.setAxisMinValue(-300);
+        }
+
+        if(Float.valueOf(outPower)>=300 || Float.valueOf(batPower)<=-300)
+        {
+            leftAxis.setAxisMaxValue(400);
+            leftAxis.setAxisMinValue(-400);
+        }
 
         BarDataSet dataSet= new BarDataSet(entries,"Power");
         dataSet.setColors(ColorTemplate.MATERIAL_COLORS);

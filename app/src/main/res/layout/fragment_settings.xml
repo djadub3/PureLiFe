@@ -5,8 +5,79 @@
     tools:context="com.example.andy.purelifefinal.SettingsFragment">
 
     <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <LinearLayout
+        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent">
+
+        <TextView
+            android:text="System ID"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView21"
+            android:layout_weight=".1" />
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPersonName"
+            android:ems="10"
+            android:id="@+id/pvo_system_id"
+            android:layout_weight=".1" />
+
+        <Button
+            android:text="Set System ID"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/set_system_id"
+            android:layout_weight=".1" />
+
+        <TextView
+            android:text="API Key"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView23" />
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPersonName"
+            android:ems="10"
+            android:id="@+id/api_key" />
+
+        <Button
+            android:text="SET API KEY"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/set_api_key"
+            android:layout_weight=".1" />
+
+        <TextView
+            android:text="UTC offset"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView24"
+            android:layout_weight=".1" />
+
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:ems="10"
+            android:id="@+id/utc_offset"
+            android:layout_weight=".1" />
+
+        <Button
+            android:text="SET UTC OFFSET"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/set_utc_offset"
+            android:layout_weight=".1" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1" />
+    </LinearLayout>
 
 </FrameLayout>

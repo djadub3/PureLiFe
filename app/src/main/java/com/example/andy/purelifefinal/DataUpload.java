@@ -13,11 +13,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.TimeZone;
 
 public class DataUpload {
 
     private static String apiKey;
     private static String systemID;
+
 
     public DataUpload(String apiKey, String systemID) {
         this.apiKey = apiKey;
@@ -108,6 +110,7 @@ public class DataUpload {
         StringBuilder status = new StringBuilder();
         StringBuilder batchStatus = new StringBuilder();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd,HH:mm");
+        sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         for (int i = 0; i < unixTimes.size(); i++) {
             dateTime = sdf.format(new Date((long)unixTimes.get(i)*1000));
             eGen = String.valueOf(Math.round(energyGens.get(i)));
@@ -151,7 +154,9 @@ public class DataUpload {
     }
 
     public String getDateTime(Date date) {
-        return DateFormat.getDateTimeInstance().format(date);
+        DateFormat dt = DateFormat.getDateTimeInstance();
+        dt.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return dt.format(date);
     }
 
     private String readStream(InputStream in) throws Exception {
